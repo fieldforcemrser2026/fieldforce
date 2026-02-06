@@ -1,0 +1,642 @@
+875rem; font-weight: 600; }
+.badge-ok { background: #D1FAE5; color: #065F46; }
+.badge-warn { background: #FEF3C7; color: #92400E; }
+.badge-err { background: #FEE2E2; color: #991B1B; }
+.badge-blue { background: #DBEAFE; color: #1E40AF; }
+
+/* TREE */
+.tree { list-style: none; }
+.tree-item { margin-bottom: 8px; }
+.tree-toggle { cursor: pointer; padding: 12px 16px; border-radius: 10px; background: var(--light); display: flex; align-items: center; gap: 12px; }
+.tree-toggle:hover { background: #E5E7EB; }
+.tree-children { display: none; margin-left: 24px; margin-top: 8px; }
+.tree-children.open { display: block; }
+.tree-child { padding: 10px 16px; border-left: 2px solid #E5E7EB; margin-bottom: 4px; font-size: 0.875rem; }
+
+/* FILTERS */
+.filters { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+.filters select, .filters input { padding: 10px 14px; border: 2px solid #E5E7EB; border-radius: 8px; font-size: 0.875rem; font-family: var(--font); }
+.filters input[type="text"] { min-width: 200px; }
+
+/* MAP */
+.section-map { position: relative; height: calc(100vh - 56px - 48px); margin: -24px; margin-top: 0; }
+.section-map #mapAdmin { width: 100%; height: 100%; }
+
+/* MODAL */
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1500; display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: 0.3s; }
+.modal.show { opacity: 1; visibility: visible; }
+.modal-box { background: var(--white); width: 100%; max-width: 600px; max-height: 90vh; border-radius: 16px; overflow: hidden; }
+.modal-head { padding: 20px; border-bottom: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center; }
+.modal-head h2 { font-size: 1.125rem; }
+.modal-close { width: 36px; height: 36px; border: none; background: var(--light); border-radius: 50%; font-size: 1.125rem; cursor: pointer; }
+.modal-body { padding: 20px; overflow-y: auto; max-height: calc(90vh - 140px); }
+.modal-foot { padding: 16px 20px; border-top: 1px solid #E5E7EB; display: flex; gap: 12px; justify-content: flex-end; }
+
+/* TOAST */
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--dark); color: var(--white); padding: 14px 24px; border-radius: 12px; z-index: 2000; opacity: 0; transform: translateY(20px); transition: 0.3s; }
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.ok { background: var(--ok); }
+.toast.err { background: var(--err); }
+
+/* RESPONSIVE */
+@media (max-width: 1024px) {
+  .sidebar { width: 200px; }
+  .header, .main { margin-left: 200px; }
+}
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .header, .main { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<div class="login" id="loginScreen">
+<div class="login-box">
+<h1>⚙️ <span id="brandName">FieldForce</span></h1>
+<p class="subtitle">Pannello Amministrazione</p>
+<div id="loginLoad" style="text-align:center;color:var(--gray)">⏳ Caricamento...</div>
+<form id="loginForm" style="display:none" onsubmit="return doLogin(event)">
+<div class="error" id="loginErr"></div>
+<div class="field"><label>Username</label><input type="text" id="inpUser" required></div>
+<div class="field"><label>Password</label><input type="password" id="inpPwd" required></div>
+<button type="submit" class="btn btn-primary btn-block" id="btnLogin">Accedi</button>
+</form>
+</div>
+</div>
+
+<aside class="sidebar" id="sidebar">
+<div class="sidebar-brand">⚙️ <span id="sidebarBrand">FieldForce</span></div>
+<button class="nav-item active" onclick="showSec('secDash',this)">📊 Dashboard</button>
+<button class="nav-item" onclick="showSec('secPiano',this)">📋 Piano Interventi</button>
+<button class="nav-item" onclick="showSec('secClienti',this)">🏢 Clienti</button>
+<button class="nav-item" onclick="showSec('secMacchine',this)">⚙️ Macchine</button>
+<button class="nav-item" onclick="showSec('secUrgenze',this)" id="navUrg">🚨 Urgenze</button>
+<button class="nav-item" onclick="showSec('secRichieste',this)" id="navRich">📝 Richieste</button>
+<button class="nav-item" onclick="showSec('secTecnici',this)">👥 Tecnici</button>
+<button class="nav-item" onclick="showSec('secMappa',this)">🗺️ Mappa</button>
+<button class="nav-item" onclick="showSec('secConfig',this)">🔧 Configurazione</button>
+<button class="nav-item" onclick="logout()" style="margin-top:40px;color:#EF4444">🚪 Esci</button>
+</aside>
+
+<header class="header" id="appHeader" style="display:none">
+<h1 id="headerTitle">📊 Dashboard</h1>
+<div style="display:flex;gap:12px;align-items:center">
+<button class="header-btn" onclick="syncData()">🔄 Aggiorna</button>
+<span id="headerUser">Admin</span>
+</div>
+</header>
+
+<main class="main" id="appMain" style="display:none">
+
+<!-- DASHBOARD -->
+<section class="section active" id="secDash">
+<div class="kpi-grid">
+<div class="kpi"><div class="val" id="kpiOggi">0</div><div class="lbl">Interventi Oggi</div></div>
+<div class="kpi ok"><div class="val" id="kpiDone">0</div><div class="lbl">Completati</div></div>
+<div class="kpi err"><div class="val" id="kpiUrg">0</div><div class="lbl">Urgenze Aperte</div></div>
+<div class="kpi warn"><div class="val" id="kpiRich">0</div><div class="lbl">Richieste Pending</div></div>
+<div class="kpi"><div class="val" id="kpiTec">0</div><div class="lbl">Tecnici Attivi</div></div>
+<div class="kpi"><div class="val" id="kpiCli">0</div><div class="lbl">Clienti Totali</div></div>
+</div>
+<div class="card">
+<div class="card-head">📋 Interventi Oggi <button class="btn btn-primary btn-sm" onclick="openNewInt()">+ Nuovo</button></div>
+<div class="card-body"><table class="table"><thead><tr><th>Ora</th><th>Tecnico</th><th>Cliente</th><th>Macchina</th><th>Tipo</th><th>Stato</th></tr></thead><tbody id="tblOggi"></tbody></table></div>
+</div>
+</section>
+
+<!-- PIANO -->
+<section class="section" id="secPiano">
+<div class="filters">
+<input type="date" id="fltData" onchange="renderPiano()">
+<select id="fltTec" onchange="renderPiano()"><option value="">Tutti i tecnici</option></select>
+<select id="fltStato" onchange="renderPiano()"><option value="">Tutti gli stati</option><option value="pianificato">Pianificato</option><option value="in_corso">In corso</option><option value="completato">Completato</option></select>
+<button class="btn btn-primary btn-sm" onclick="openNewInt()">+ Nuovo Intervento</button>
+</div>
+<div class="card">
+<div class="card-body"><table class="table"><thead><tr><th>Data</th><th>Ora</th><th>Tecnico</th><th>Cliente</th><th>Macchina</th><th>Tipo</th><th>Durata</th><th>Stato</th><th>Azioni</th></tr></thead><tbody id="tblPiano"></tbody></table></div>
+</div>
+</section>
+
+<!-- CLIENTI -->
+<section class="section" id="secClienti">
+<div class="filters">
+<input type="text" id="fltCliSearch" placeholder="🔍 Cerca cliente..." onkeyup="renderClienti()">
+<button class="btn btn-primary btn-sm" onclick="openNewCli()">+ Nuovo Cliente</button>
+</div>
+<div class="card"><div class="card-body" id="treeClienti"></div></div>
+</section>
+
+<!-- MACCHINE -->
+<section class="section" id="secMacchine">
+<div class="filters">
+<select id="fltMacCli" onchange="renderMacchine()"><option value="">Tutti i clienti</option></select>
+<button class="btn btn-primary btn-sm" onclick="openNewMac()">+ Nuova Macchina</button>
+</div>
+<div class="card">
+<div class="card-body"><table class="table"><thead><tr><th>Cliente</th><th>Tipo</th><th>Modello</th><th>Seriale</th><th>Anno</th><th>Ore</th><th>Azioni</th></tr></thead><tbody id="tblMacchine"></tbody></table></div>
+</div>
+</section>
+
+<!-- URGENZE -->
+<section class="section" id="secUrgenze">
+<div class="card">
+<div class="card-head">🚨 Urgenze Aperte</div>
+<div class="card-body"><table class="table"><thead><tr><th>Data</th><th>Cliente</th><th>Macchina</th><th>Problema</th><th>Priorità</th><th>Assegnato</th><th>Azioni</th></tr></thead><tbody id="tblUrgenze"></tbody></table></div>
+</div>
+</section>
+
+<!-- RICHIESTE -->
+<section class="section" id="secRichieste">
+<div class="card">
+<div class="card-head">📝 Richieste in Attesa</div>
+<div class="card-body"><table class="table"><thead><tr><th>Data</th><th>Tecnico</th><th>Tipo</th><th>Periodo</th><th>Motivo</th><th>Azioni</th></tr></thead><tbody id="tblRichieste"></tbody></table></div>
+</div>
+</section>
+
+<!-- TECNICI -->
+<section class="section" id="secTecnici">
+<div class="card">
+<div class="card-head">👥 Gestione Tecnici <button class="btn btn-primary btn-sm" onclick="openNewTec()">+ Nuovo Tecnico</button></div>
+<div class="card-body"><table class="table"><thead><tr><th>Nome</th><th>Username</th><th>Email</th><th>Telefono</th><th>Ruolo</th><th>Squadra</th><th>Attivo</th><th>Azioni</th></tr></thead><tbody id="tblTecnici"></tbody></table></div>
+</div>
+</section>
+
+<!-- MAPPA -->
+<section class="section section-map" id="secMappa">
+<div id="mapAdmin"></div>
+</section>
+
+<!-- CONFIG -->
+<section class="section" id="secConfig">
+<div class="card">
+<div class="card-head">🎨 Brand e Aspetto</div>
+<div class="card-body">
+<div class="field"><label>Nome Azienda</label><input type="text" id="cfgNome" onchange="saveConfig('azienda_nome',this.value)"></div>
+<div class="field"><label>Slogan</label><input type="text" id="cfgSlogan" onchange="saveConfig('azienda_slogan',this.value)"></div>
+<div class="field"><label>Colore Primario</label><input type="color" id="cfgColore" onchange="saveConfig('colore_primario',this.value)"></div>
+<div class="field"><label>Font Famiglia</label><input type="text" id="cfgFont" placeholder="es: Cambria, Georgia, serif" onchange="saveConfig('font_famiglia',this.value)"></div>
+<div class="field"><label>Font Size Base (px)</label><input type="number" id="cfgFontSize" placeholder="16" onchange="saveConfig('font_size_base',this.value)"></div>
+</div>
+</div>
+<div class="card">
+<div class="card-head">📞 Assistenza</div>
+<div class="card-body">
+<div class="field"><label>Telefono</label><input type="text" id="cfgTel" onchange="saveConfig('telefono_assistenza',this.value)"></div>
+<div class="field"><label>Email</label><input type="email" id="cfgEmail" onchange="saveConfig('email_assistenza',this.value)"></div>
+<div class="field"><label>Orari</label><input type="text" id="cfgOrari" onchange="saveConfig('orari_assistenza',this.value)"></div>
+</div>
+</div>
+<div class="card">
+<div class="card-head">🗺️ Mappa</div>
+<div class="card-body">
+<div class="field"><label>Latitudine Centro</label><input type="number" step="0.0001" id="cfgLat" onchange="saveConfig('mappa_lat',this.value)"></div>
+<div class="field"><label>Longitudine Centro</label><input type="number" step="0.0001" id="cfgLng" onchange="saveConfig('mappa_lng',this.value)"></div>
+<div class="field"><label>Zoom Default</label><input type="number" id="cfgZoom" onchange="saveConfig('mappa_zoom',this.value)"></div>
+</div>
+</div>
+<div class="card">
+<div class="card-head">🔧 Tipi Intervento</div>
+<div class="card-body"><table class="table"><thead><tr><th>Nome</th><th>Colore</th><th>Icona</th><th>Durata Default</th><th>Attivo</th></tr></thead><tbody id="tblTipi"></tbody></table></div>
+</div>
+<div class="card">
+<div class="card-head">⚠️ Priorità</div>
+<div class="card-body"><table class="table"><thead><tr><th>Nome</th><th>Colore</th><th>Ordine</th><th>Attivo</th></tr></thead><tbody id="tblPriorita"></tbody></table></div>
+</div>
+</section>
+
+</main>
+
+<!-- MODAL INTERVENTO -->
+<div class="modal" id="modInt">
+<div class="modal-box">
+<div class="modal-head"><h2 id="modIntTitle">Nuovo Intervento</h2><button class="modal-close" onclick="closeMod('modInt')">✕</button></div>
+<div class="modal-body">
+<div class="field"><label>Data *</label><input type="date" id="intData" required></div>
+<div class="field"><label>Ora Inizio</label><input type="time" id="intOra" value="08:00"></div>
+<div class="field"><label>Durata (ore)</label><input type="number" id="intDurata" step="0.5" value="2"></div>
+<div class="field"><label>Tecnico *</label><select id="intTec" required></select></div>
+<div class="field"><label>Cliente *</label><select id="intCli" onchange="updIntMac()" required></select></div>
+<div class="field"><label>Macchina *</label><select id="intMac" required></select></div>
+<div class="field"><label>Tipo Intervento</label><select id="intTipo"></select></div>
+<div class="field"><label>Note</label><textarea id="intNote" rows="3" placeholder="Note per il tecnico..."></textarea></div>
+</div>
+<div class="modal-foot">
+<button class="btn btn-outline" onclick="closeMod('modInt')">Annulla</button>
+<button class="btn btn-primary" onclick="saveInt()">💾 Salva</button>
+</div>
+</div>
+</div>
+
+<!-- MODAL CLIENTE -->
+<div class="modal" id="modCli">
+<div class="modal-box">
+<div class="modal-head"><h2 id="modCliTitle">Nuovo Cliente</h2><button class="modal-close" onclick="closeMod('modCli')">✕</button></div>
+<div class="modal-body">
+<div class="field"><label>Nome *</label><input type="text" id="cliNome" required></div>
+<div class="field"><label>Ragione Sociale</label><input type="text" id="cliRagSoc"></div>
+<div class="field"><label>P.IVA</label><input type="text" id="cliPiva"></div>
+<div class="field"><label>Città *</label><input type="text" id="cliCitta" required></div>
+<div class="field"><label>Provincia</label><input type="text" id="cliProv" maxlength="2" placeholder="MO"></div>
+<div class="field"><label>Indirizzo</label><input type="text" id="cliIndirizzo"></div>
+<div class="field"><label>CAP</label><input type="text" id="cliCap" maxlength="5"></div>
+<div class="field"><label>Telefono</label><input type="tel" id="cliTel"></div>
+<div class="field"><label>Email</label><input type="email" id="cliEmail"></div>
+<div class="field"><label>Latitudine</label><input type="number" step="0.0001" id="cliLat"></div>
+<div class="field"><label>Longitudine</label><input type="number" step="0.0001" id="cliLng"></div>
+</div>
+<div class="modal-foot">
+<button class="btn btn-outline" onclick="closeMod('modCli')">Annulla</button>
+<button class="btn btn-primary" onclick="saveCli()">💾 Salva</button>
+</div>
+</div>
+</div>
+
+<!-- MODAL MACCHINA -->
+<div class="modal" id="modMac">
+<div class="modal-box">
+<div class="modal-head"><h2>Nuova Macchina</h2><button class="modal-close" onclick="closeMod('modMac')">✕</button></div>
+<div class="modal-body">
+<div class="field"><label>Cliente *</label><select id="macCli" required></select></div>
+<div class="field"><label>Tipo *</label><input type="text" id="macTipo" placeholder="Es: Astronaut A5" required></div>
+<div class="field"><label>Modello</label><input type="text" id="macModello"></div>
+<div class="field"><label>Seriale *</label><input type="text" id="macSeriale" required></div>
+<div class="field"><label>Anno Installazione</label><input type="number" id="macAnno" placeholder="2024"></div>
+<div class="field"><label>Ore Lavoro</label><input type="number" id="macOre" value="0"></div>
+</div>
+<div class="modal-foot">
+<button class="btn btn-outline" onclick="closeMod('modMac')">Annulla</button>
+<button class="btn btn-primary" onclick="saveMac()">💾 Salva</button>
+</div>
+</div>
+</div>
+
+<!-- MODAL TECNICO -->
+<div class="modal" id="modTec">
+<div class="modal-box">
+<div class="modal-head"><h2>Nuovo Tecnico</h2><button class="modal-close" onclick="closeMod('modTec')">✕</button></div>
+<div class="modal-body">
+<div class="field"><label>Username *</label><input type="text" id="tecUser" required></div>
+<div class="field"><label>Password *</label><input type="text" id="tecPwd" required value="Password123"></div>
+<div class="field"><label>Nome *</label><input type="text" id="tecNome" required></div>
+<div class="field"><label>Cognome *</label><input type="text" id="tecCognome" required></div>
+<div class="field"><label>Email</label><input type="email" id="tecEmail"></div>
+<div class="field"><label>Telefono</label><input type="tel" id="tecTel"></div>
+<div class="field"><label>Ruolo</label><select id="tecRuolo"><option value="tecnico">Tecnico</option><option value="caposquadra">Capo Squadra</option></select></div>
+<div class="field"><label>Squadra</label><select id="tecSquadra"></select></div>
+<div class="field"><label>Base</label><input type="text" id="tecBase" placeholder="Es: Modena"></div>
+</div>
+<div class="modal-foot">
+<button class="btn btn-outline" onclick="closeMod('modTec')">Annulla</button>
+<button class="btn btn-primary" onclick="saveTec()">💾 Salva</button>
+</div>
+</div>
+</div>
+
+<!-- MODAL ASSEGNA -->
+<div class="modal" id="modAssign">
+<div class="modal-box">
+<div class="modal-head"><h2>Assegna Urgenza</h2><button class="modal-close" onclick="closeMod('modAssign')">✕</button></div>
+<div class="modal-body">
+<div class="field"><label>Tecnico *</label><select id="assignTec" required></select></div>
+<div class="field"><label>Data Intervento</label><input type="date" id="assignData"></div>
+<div class="field"><label><input type="checkbox" id="assignCreaInt" checked> Crea intervento automaticamente</label></div>
+</div>
+<div class="modal-foot">
+<button class="btn btn-outline" onclick="closeMod('modAssign')">Annulla</button>
+<button class="btn btn-primary" onclick="doAssign()">✅ Assegna</button>
+</div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbwWke2ScBtrV4cjdMsx1f-diEabp2v_rEUTuTBE5zKv4wfxcvXpTfiO5A3Q6q_lIJC8Kg/exec';
+const API_TOKEN = 'MRS_FieldForce_2026_MBGOAT';
+let DATA = { config:{}, utenti:[], clienti:[], macchine:[], piano:[], urgenze:[], richieste:[], tipiIntervento:[], priorita:[], squadre:[] };
+let USER = null, mapAdmin = null, editIntId = null, assignUrgId = null;
+
+const $ = id => document.getElementById(id);
+const today = () => new Date().toISOString().split('T')[0];
+const fmtDate = d => d ? new Date(d).toLocaleDateString('it-IT') : '-';
+const isTrue = v => v === true || v === 'TRUE' || v === 'true' || v === 1;
+
+async function api(action, data = {}, method = 'GET') {
+  let url = API_URL, opts = {};
+  if (method === 'GET') { url += '?' + new URLSearchParams({ action, token: API_TOKEN, userId: USER?.ID || '', ...data }); }
+  else { opts = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, token: API_TOKEN, userId: USER?.ID || '', ...data }) }; }
+  const r = await (await fetch(url, opts)).json();
+  if (!r.success) throw new Error(r.error || 'Errore');
+  return r.data;
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+async function init() {
+  try {
+    DATA = await api('getAll');
+    applyConfig();
+    $('loginLoad').style.display = 'none';
+    $('loginForm').style.display = 'block';
+    const saved = localStorage.getItem('ff_admin_session');
+    if (saved) {
+      const s = JSON.parse(saved);
+      const u = DATA.utenti.find(x => x.ID === s.user?.ID);
+      if (u && (u.Ruolo === 'director' || u.Ruolo === 'caposquadra')) { USER = { ...s.user, ...u }; enterApp(); }
+    }
+  } catch (e) { $('loginLoad').innerHTML = '❌ ' + e.message; }
+}
+
+function applyConfig() {
+  const c = DATA.config;
+  if (c.font_famiglia) document.documentElement.style.setProperty('--font', c.font_famiglia);
+  if (c.font_size_base) document.documentElement.style.setProperty('--font-size', c.font_size_base + 'px');
+  if (c.colore_primario) document.documentElement.style.setProperty('--c1', c.colore_primario);
+  if (c.colore_secondario) document.documentElement.style.setProperty('--c2', c.colore_secondario);
+  if (c.azienda_nome) { $('brandName').textContent = c.azienda_nome; $('sidebarBrand').textContent = c.azienda_nome; }
+}
+
+async function doLogin(e) {
+  e.preventDefault();
+  const user = $('inpUser').value.trim(), pwd = $('inpPwd').value;
+  $('btnLogin').disabled = true;
+  try {
+    const r = await api('login', { username: user, password: pwd }, 'POST');
+    if (r.success === false || !r.user) throw new Error(r.error || 'Credenziali errate');
+    if (r.user.Ruolo !== 'director' && r.user.Ruolo !== 'caposquadra') throw new Error('Accesso riservato ad amministratori');
+    USER = r.user;
+    localStorage.setItem('ff_admin_session', JSON.stringify({ user: USER }));
+    enterApp();
+  } catch (e) { $('loginErr').textContent = e.message; $('loginErr').classList.add('show'); }
+  finally { $('btnLogin').disabled = false; }
+  return false;
+}
+
+function logout() { localStorage.removeItem('ff_admin_session'); location.reload(); }
+
+function enterApp() {
+  $('loginScreen').classList.add('hidden');
+  $('appHeader').style.display = 'flex';
+  $('appMain').style.display = 'block';
+  $('headerUser').textContent = USER.Nome + ' ' + USER.Cognome;
+  renderAll();
+}
+
+async function syncData() {
+  toast('🔄 Sincronizzazione...', '');
+  try { DATA = await api('getAll'); renderAll(); toast('✅ Aggiornato!', 'ok'); }
+  catch (e) { toast('❌ ' + e.message, 'err'); }
+}
+
+function renderAll() {
+  renderDash(); renderPiano(); renderClienti(); renderMacchine(); renderUrgenze(); renderRichieste(); renderTecnici(); renderConfig(); populateSelects();
+}
+
+function getCli(id) { return DATA.clienti.find(c => c.ID === id) || {}; }
+function getMac(id) { return DATA.macchine.find(m => m.ID === id) || {}; }
+function getTec(id) { return DATA.utenti.find(u => u.ID === id) || {}; }
+function getTipo(id) { return DATA.tipiIntervento.find(t => t.ID === id) || {}; }
+function getPri(id) { return DATA.priorita.find(p => p.ID === id) || {}; }
+
+function renderDash() {
+  const t = today();
+  const int = DATA.piano.filter(p => !isTrue(p.Obsoleto) && String(p.Data).split('T')[0] === t);
+  $('kpiOggi').textContent = int.length;
+  $('kpiDone').textContent = int.filter(p => p.Stato === 'completato').length;
+  $('kpiUrg').textContent = DATA.urgenze.filter(u => !isTrue(u.Obsoleto) && u.Stato !== 'risolta').length;
+  $('kpiRich').textContent = DATA.richieste.filter(r => !isTrue(r.Obsoleto) && r.Stato === 'pending').length;
+  $('kpiTec').textContent = DATA.utenti.filter(u => u.Ruolo === 'tecnico' && isTrue(u.Attivo)).length;
+  $('kpiCli').textContent = DATA.clienti.filter(c => !isTrue(c.Obsoleto)).length;
+  
+  $('tblOggi').innerHTML = int.sort((a, b) => (a.OraInizio || '').localeCompare(b.OraInizio || '')).map(p => {
+    const tec = getTec(p.TecnicoID), cli = getCli(p.ClienteID), mac = getMac(p.MacchinaID), tipo = getTipo(p.TipoInterventoID);
+    let bc = 'badge-blue'; if (p.Stato === 'completato') bc = 'badge-ok'; else if (p.Stato === 'in_corso') bc = 'badge-warn';
+    return `<tr style="cursor:pointer" onclick="openEditInt('${p.ID}')"><td>${p.OraInizio || '-'}</td><td>${tec.Nome || '-'} ${tec.Cognome || ''}</td><td>${cli.Nome || '-'}</td><td>${mac.Tipo || '-'}</td><td>${tipo.Nome || '-'}</td><td><span class="badge ${bc}">${p.Stato}</span></td></tr>`;
+  }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:40px">Nessun intervento oggi</td></tr>';
+}
+
+function renderPiano() {
+  const fltD = $('fltData').value, fltT = $('fltTec').value, fltS = $('fltStato').value;
+  let int = DATA.piano.filter(p => !isTrue(p.Obsoleto));
+  if (fltD) int = int.filter(p => String(p.Data).split('T')[0] === fltD);
+  if (fltT) int = int.filter(p => p.TecnicoID === fltT);
+  if (fltS) int = int.filter(p => p.Stato === fltS);
+  int.sort((a, b) => new Date(b.Data) - new Date(a.Data));
+  
+  $('tblPiano').innerHTML = int.slice(0, 100).map(p => {
+    const tec = getTec(p.TecnicoID), cli = getCli(p.ClienteID), mac = getMac(p.MacchinaID), tipo = getTipo(p.TipoInterventoID);
+    let bc = 'badge-blue'; if (p.Stato === 'completato') bc = 'badge-ok'; else if (p.Stato === 'in_corso') bc = 'badge-warn';
+    return `<tr><td>${fmtDate(p.Data)}</td><td>${p.OraInizio || '-'}</td><td>${tec.Nome || '-'}</td><td>${cli.Nome || '-'}</td><td>${mac.Tipo || '-'}</td><td>${tipo.Nome || '-'}</td><td>${p.DurataOre || '-'}h</td><td><span class="badge ${bc}">${p.Stato}</span></td><td><button class="btn btn-outline btn-sm" onclick="openEditInt('${p.ID}')">✏️</button></td></tr>`;
+  }).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--gray);padding:40px">Nessun intervento trovato</td></tr>';
+}
+
+function renderClienti() {
+  const search = ($('fltCliSearch').value || '').toLowerCase();
+  let clienti = DATA.clienti.filter(c => !isTrue(c.Obsoleto));
+  if (search) clienti = clienti.filter(c => (c.Nome || '').toLowerCase().includes(search) || (c.Citta || '').toLowerCase().includes(search));
+  
+  $('treeClienti').innerHTML = clienti.map(c => {
+    const macchine = DATA.macchine.filter(m => m.ClienteID === c.ID && !isTrue(m.Obsoleto));
+    return `<div class="tree-item">
+      <div class="tree-toggle" onclick="this.nextElementSibling.classList.toggle('open')">
+        <span style="font-size:1.25rem">🏢</span>
+        <div style="flex:1"><strong>${c.Nome}</strong><br><small style="color:var(--gray)">${c.Citta || ''} ${c.Prov || ''} • ${macchine.length} macchine</small></div>
+        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();editCli('${c.ID}')">✏️</button>
+      </div>
+      <div class="tree-children">${macchine.map(m => {
+        const interventi = DATA.piano.filter(p => p.MacchinaID === m.ID && !isTrue(p.Obsoleto)).length;
+        return `<div class="tree-child">⚙️ <strong>${m.Tipo}</strong> - ${m.Seriale} <small style="color:var(--gray)">| ${m.OreLavoro || 0}h | ${interventi} interventi</small></div>`;
+      }).join('') || '<div class="tree-child" style="color:var(--gray)">Nessuna macchina</div>'}</div>
+    </div>`;
+  }).join('') || '<div style="text-align:center;color:var(--gray);padding:40px">Nessun cliente trovato</div>';
+}
+
+function renderMacchine() {
+  const fltC = $('fltMacCli').value;
+  let mac = DATA.macchine.filter(m => !isTrue(m.Obsoleto));
+  if (fltC) mac = mac.filter(m => m.ClienteID === fltC);
+  
+  $('tblMacchine').innerHTML = mac.map(m => {
+    const cli = getCli(m.ClienteID);
+    return `<tr><td>${cli.Nome || '-'}</td><td>${m.Tipo || '-'}</td><td>${m.Modello || '-'}</td><td>${m.Seriale || '-'}</td><td>${m.AnnoInstallazione || '-'}</td><td>${m.OreLavoro || 0}</td><td><button class="btn btn-outline btn-sm" onclick="editMac('${m.ID}')">✏️</button></td></tr>`;
+  }).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:40px">Nessuna macchina</td></tr>';
+}
+
+function renderUrgenze() {
+  const urg = DATA.urgenze.filter(u => !isTrue(u.Obsoleto) && u.Stato !== 'risolta');
+  $('tblUrgenze').innerHTML = urg.map(u => {
+    const cli = getCli(u.ClienteID), mac = getMac(u.MacchinaID), pri = getPri(u.PrioritaID), tec = getTec(u.TecnicoAssegnato);
+    return `<tr><td>${fmtDate(u.DataSegnalazione)}</td><td>${cli.Nome || '-'}</td><td>${mac.Tipo || '-'}</td><td>${u.Problema || '-'}</td><td><span class="badge badge-err">${pri.Nome || '-'}</span></td><td>${tec.Nome || '-'}</td><td><button class="btn btn-primary btn-sm" onclick="openAssign('${u.ID}')">Assegna</button></td></tr>`;
+  }).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--gray);padding:40px">Nessuna urgenza aperta</td></tr>';
+}
+
+function renderRichieste() {
+  const rich = DATA.richieste.filter(r => !isTrue(r.Obsoleto) && r.Stato === 'pending');
+  $('tblRichieste').innerHTML = rich.map(r => {
+    const tec = getTec(r.TecnicoID);
+    return `<tr><td>${fmtDate(r.DataRichiesta)}</td><td>${tec.Nome || '-'} ${tec.Cognome || ''}</td><td>${r.Tipo || '-'}</td><td>${fmtDate(r.DataInizio)} - ${fmtDate(r.DataFine)}</td><td>${r.Motivo || '-'}</td><td><button class="btn btn-ok btn-sm" onclick="processRich('${r.ID}','approvato')">✓</button> <button class="btn btn-err btn-sm" onclick="processRich('${r.ID}','rifiutato')">✗</button></td></tr>`;
+  }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:40px">Nessuna richiesta in attesa</td></tr>';
+}
+
+function renderTecnici() {
+  const tec = DATA.utenti.filter(u => u.Ruolo === 'tecnico' || u.Ruolo === 'caposquadra');
+  $('tblTecnici').innerHTML = tec.map(t => `<tr><td>${t.Nome} ${t.Cognome}</td><td>${t.Username}</td><td>${t.Email || '-'}</td><td>${t.Telefono || '-'}</td><td>${t.Ruolo}</td><td>${t.Squadra || '-'}</td><td>${isTrue(t.Attivo) ? '<span class="badge badge-ok">Sì</span>' : '<span class="badge badge-err">No</span>'}</td><td><button class="btn btn-outline btn-sm" onclick="editTec('${t.ID}')">✏️</button></td></tr>`).join('');
+}
+
+function renderConfig() {
+  const c = DATA.config;
+  $('cfgNome').value = c.azienda_nome || '';
+  $('cfgSlogan').value = c.azienda_slogan || '';
+  $('cfgColore').value = c.colore_primario || '#B22222';
+  $('cfgFont').value = c.font_famiglia || '';
+  $('cfgFontSize').value = c.font_size_base || '14';
+  $('cfgTel').value = c.telefono_assistenza || '';
+  $('cfgEmail').value = c.email_assistenza || '';
+  $('cfgOrari').value = c.orari_assistenza || '';
+  $('cfgLat').value = c.mappa_lat || '';
+  $('cfgLng').value = c.mappa_lng || '';
+  $('cfgZoom').value = c.mappa_zoom || '10';
+  
+  $('tblTipi').innerHTML = DATA.tipiIntervento.map(t => `<tr><td>${t.Nome}</td><td><span style="background:${t.Colore};color:#fff;padding:2px 8px;border-radius:4px">${t.Colore}</span></td><td>${t.Icona || '-'}</td><td>${t.DurataDefault || '-'}h</td><td>${isTrue(t.Attivo) ? '✓' : '✗'}</td></tr>`).join('');
+  $('tblPriorita').innerHTML = DATA.priorita.map(p => `<tr><td>${p.Nome}</td><td><span style="background:${p.Colore};color:#fff;padding:2px 8px;border-radius:4px">${p.Colore}</span></td><td>${p.Ordine}</td><td>${isTrue(p.Attivo) ? '✓' : '✗'}</td></tr>`).join('');
+}
+
+async function saveConfig(key, val) {
+  try { await api('updateConfig', { parametro: key, valore: val }, 'POST'); DATA.config[key] = val; applyConfig(); toast('✅ Salvato', 'ok'); }
+  catch (e) { toast('❌ ' + e.message, 'err'); }
+}
+
+function populateSelects() {
+  const tecOpts = '<option value="">-- Seleziona --</option>' + DATA.utenti.filter(u => u.Ruolo === 'tecnico' && isTrue(u.Attivo)).map(t => `<option value="${t.ID}">${t.Nome} ${t.Cognome}</option>`).join('');
+  const cliOpts = '<option value="">-- Seleziona --</option>' + DATA.clienti.filter(c => !isTrue(c.Obsoleto)).map(c => `<option value="${c.ID}">${c.Nome}</option>`).join('');
+  const tipoOpts = DATA.tipiIntervento.filter(t => isTrue(t.Attivo)).map(t => `<option value="${t.ID}">${t.Nome}</option>`).join('');
+  const squadreOpts = '<option value="">-- Nessuna --</option>' + DATA.squadre.filter(s => isTrue(s.Attivo)).map(s => `<option value="${s.Nome}">${s.Nome}</option>`).join('');
+  
+  $('fltTec').innerHTML = '<option value="">Tutti i tecnici</option>' + DATA.utenti.filter(u => u.Ruolo === 'tecnico').map(t => `<option value="${t.ID}">${t.Nome}</option>`).join('');
+  $('intTec').innerHTML = tecOpts;
+  $('intCli').innerHTML = cliOpts;
+  $('intTipo').innerHTML = tipoOpts;
+  $('fltMacCli').innerHTML = '<option value="">Tutti i clienti</option>' + DATA.clienti.filter(c => !isTrue(c.Obsoleto)).map(c => `<option value="${c.ID}">${c.Nome}</option>`).join('');
+  $('macCli').innerHTML = cliOpts;
+  $('assignTec').innerHTML = tecOpts;
+  $('tecSquadra').innerHTML = squadreOpts;
+}
+
+function updIntMac() {
+  const cid = $('intCli').value;
+  $('intMac').innerHTML = '<option value="">-- Seleziona --</option>' + DATA.macchine.filter(m => m.ClienteID === cid && !isTrue(m.Obsoleto)).map(m => `<option value="${m.ID}">${m.Tipo} - ${m.Seriale}</option>`).join('');
+}
+
+// INTERVENTO
+function openNewInt() {
+  editIntId = null;
+  $('modIntTitle').textContent = 'Nuovo Intervento';
+  $('intData').value = today(); $('intOra').value = '08:00'; $('intDurata').value = '2';
+  $('intTec').value = ''; $('intCli').value = ''; $('intMac').innerHTML = '<option value="">--</option>'; $('intTipo').value = DATA.tipiIntervento[0]?.ID || ''; $('intNote').value = '';
+  openMod('modInt');
+}
+
+function openEditInt(id) {
+  const p = DATA.piano.find(x => x.ID === id); if (!p) return;
+  editIntId = id;
+  $('modIntTitle').textContent = 'Modifica Intervento';
+  $('intData').value = String(p.Data).split('T')[0]; $('intOra').value = p.OraInizio || ''; $('intDurata').value = p.DurataOre || 2;
+  $('intTec').value = p.TecnicoID || ''; $('intCli').value = p.ClienteID || ''; updIntMac(); $('intMac').value = p.MacchinaID || ''; $('intTipo').value = p.TipoInterventoID || ''; $('intNote').value = p.Note || '';
+  openMod('modInt');
+}
+
+async function saveInt() {
+  const data = { Data: $('intData').value, OraInizio: $('intOra').value, DurataOre: $('intDurata').value, TecnicoID: $('intTec').value, ClienteID: $('intCli').value, MacchinaID: $('intMac').value, TipoInterventoID: $('intTipo').value, Note: $('intNote').value };
+  if (!data.Data || !data.TecnicoID || !data.ClienteID || !data.MacchinaID) { toast('Compila i campi obbligatori', 'warn'); return; }
+  try {
+    if (editIntId) await api('updatePiano', { id: editIntId, data }, 'POST');
+    else await api('createPiano', { data }, 'POST');
+    toast('✅ Salvato!', 'ok'); closeMod('modInt'); await syncData();
+  } catch (e) { toast('❌ ' + e.message, 'err'); }
+}
+
+// CLIENTE
+function openNewCli() {
+  $('modCliTitle').textContent = 'Nuovo Cliente';
+  $('cliNome').value = ''; $('cliRagSoc').value = ''; $('cliPiva').value = ''; $('cliCitta').value = ''; $('cliProv').value = ''; $('cliIndirizzo').value = ''; $('cliCap').value = ''; $('cliTel').value = ''; $('cliEmail').value = ''; $('cliLat').value = ''; $('cliLng').value = '';
+  openMod('modCli');
+}
+
+async function saveCli() {
+  const data = { Nome: $('cliNome').value, RagioneSociale: $('cliRagSoc').value, PartitaIVA: $('cliPiva').value, Citta: $('cliCitta').value, Prov: $('cliProv').value, Indirizzo: $('cliIndirizzo').value, CAP: $('cliCap').value, Telefono: $('cliTel').value, Email: $('cliEmail').value, Lat: $('cliLat').value, Lng: $('cliLng').value };
+  if (!data.Nome || !data.Citta) { toast('Nome e Città sono obbligatori', 'warn'); return; }
+  try { await api('createCliente', { data }, 'POST'); toast('✅ Cliente creato!', 'ok'); closeMod('modCli'); await syncData(); }
+  catch (e) { toast('❌ ' + e.message, 'err'); }
+}
+
+// MACCHINA
+function openNewMac() {
+  $('macCli').value = ''; $('macTipo').value = ''; $('macModello').value = ''; $('macSeriale').value = ''; $('macAnno').value = new Date().getFullYear(); $('macOre').value = '0';
+  openMod('modMac');
+}
+
+async function saveMac() {
+  const data = { ClienteID: $('macCli').value, Tipo: $('macTipo').value, Modello: $('macModello').value, Seriale: $('macSeriale').value, AnnoInstallazione: $('macAnno').value, OreLavoro: $('macOre').value };
+  if (!data.ClienteID || !data.Tipo || !data.Seriale) { toast('Compila i campi obbligatori', 'warn'); return; }
+  try { await api('createMacchina', { data }, 'POST'); toast('✅ Macchina creata!', 'ok'); closeMod('modMac'); await syncData(); }
+  catch (e) { toast('❌ ' + e.message, 'err'); }
+}
+
+// TECNICO
+function openNewTec() {
+  $('tecUser').value = ''; $('tecPwd').value = 'Password123'; $('tecNome').value = ''; $('tecCognome').value = ''; $('tecEmail').value = ''; $('tecTel').value = ''; $('tecRuolo').value = 'tecnico'; $('tecSquadra').value = ''; $('tecBase').value = '';
+  openMod('modTec');
+}
+
+async function saveTec() {
+  const data = { Username: $('tecUser').value, Password: $('tecPwd').value, Nome: $('tecNome').value, Cognome: $('tecCognome').value, Email: $('tecEmail').value, Telefono: $('tecTel').value, Ruolo: $('tecRuolo').value, Squadra: $('tecSquadra').value, Base: $('tecBase').value };
+  if (!data.Username || !data.Password || !data.Nome || !data.Cognome) { toast('Compila i campi obbligatori', 'warn'); return; }
+  try { await api('createUtente', { data }, 'POST'); toast('✅ Tecnico creato!', 'ok'); closeMod('modTec'); await syncData(); }
+  catch (e) { toast('❌ ' + e.message, 'err'); }
+}
+
+// URGENZA
+function openAssign(id) { assignUrgId = id; $('assignData').value = today(); $('assignCreaInt').checked = true; openMod('modAssign'); }
+
+async function doAssign() {
+  const tecId = $('assignTec').value, data = $('assignData').value, crea = $('assignCreaInt').checked;
+  if (!tecId) { toast('Seleziona un tecnico', 'warn'); return; }
+  try { await api('assignUrgenza', { id: assignUrgId, tecnicoId: tecId, creaIntervento: crea, dataIntervento: data }, 'POST'); toast('✅ Urgenza assegnata!', 'ok'); closeMod('modAssign'); await syncData(); }
+  catch (e) { toast('❌ ' + e.message, 'err'); }
+}
+
+// RICHIESTE
+async function processRich(id, stato) {
+  const risp = stato === 'rifiutato' ? prompt('Motivo del rifiuto:') : '';
+  try { await api('processRichiesta', { id, stato, risposta: risp || '' }, 'POST'); toast('✅ Richiesta ' + stato, 'ok'); await syncData(); }
+  catch (e) { toast('❌ ' + e.message, 'err'); }
+}
+
+// MAPPA
+function initMapAdmin() {
+  if (mapAdmin) { mapAdmin.invalidateSize(); return; }
+  const lat = parseFloat(DATA.config.mappa_lat) || 44.6471, lng = parseFloat(DATA.config.mappa_lng) || 10.9252, zoom = parseInt(DATA.config.mappa_zoom) || 10;
+  mapAdmin = L.map('mapAdmin').setView([lat, lng], zoom);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(mapAdmin);
+  DATA.clienti.filter(c => c.Lat && c.Lng && !isTrue(c.Obsoleto)).forEach(c => {
+    L.marker([c.Lat, c.Lng]).addTo(mapAdmin).bindPopup(`<b>${c.Nome}</b><br>${c.Indirizzo || ''}, ${c.Citta || ''}<br><small>${c.Telefono || ''}</small>`);
+  });
+}
+
+// NAV
+function showSec(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  $(id).classList.add('active'); btn.classList.add('active');
+  $('headerTitle').textContent = btn.textContent;
+  if (id === 'secMappa') setTimeout(initMapAdmin, 100);
+}
+
+function openMod(id) { $(id).classList.add('show'); }
+function closeMod(id) { $(id).classList.remove('show'); }
+document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e => { if (e.target === m) closeMod(m.id); }));
+function toast(msg, type = '') { const t = $('toast'); t.textContent = msg; t.className = 'toast show' + (type ? ' ' + type : ''); setTimeout(() => t.classList.remove('show'), 4000); }
+</script>
+</body>
+</html>
