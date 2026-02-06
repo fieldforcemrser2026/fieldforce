@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#B22222">
+<title>FieldForce Admin</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{--font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;--font-size:14px;--c1:#B22222;--c2:#8B0000;--c3:#CD5C5C;--ok:#10B981;--warn:#F59E0B;--err:#EF4444;--gray:#6B7280;--light:#F3F4F6;--dark:#1F2937;--white:#FFFFFF}
+*{margin:0;padding:0;box-sizing:border-box}
+html{font-size:var(--font-size)}
+body{font-family:var(--font);background:var(--light);color:var(--dark);line-height:1.5}
+.login{position:fixed;inset:0;background:linear-gradient(135deg,var(--c2),var(--c1),var(--c3));display:flex;justify-content:center;align-items:center;padding:24px;z-index:2000}
+.login.hidden{display:none}
+.login-box{background:var(--white);padding:40px;border-radius:24px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+.login-box h1{font-size:1.75rem;color:var(--c1);text-align:center;margin-bottom:8px}
+.login-box .subtitle{color:var(--gray);text-align:center;margin-bottom:32px}
+.field{margin-bottom:20px}
+.field label{display:block;font-size:0.8125rem;font-weight:600;margin-bottom:8px}
+.field input,.field select,.field textarea{width:100%;padding:12px 14px;border:2px solid #E5E7EB;border-radius:10px;font-size:1rem;font-family:var(--font)}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--c1);outline:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 24px;border:none;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;font-family:var(--font)}
+.btn-primary{background:linear-gradient(135deg,var(--c1),var(--c2));color:var(--white)}
+.btn-ok{background:var(--ok);color:var(--white)}
+.btn-err{background:var(--err);color:var(--white)}
+.btn-outline{background:var(--white);border:2px solid #E5E7EB;color:var(--dark)}
+.btn-sm{padding:8px 16px;font-size:0.8125rem}
+.btn-block{width:100%}
+.btn:disabled{opacity:0.6}
+.error{background:#FEE2E2;color:#991B1B;padding:12px;border-radius:10px;margin-bottom:16px;display:none}
+.error.show{display:block}
+.sidebar{position:fixed;top:0;left:0;bottom:0;width:220px;background:var(--dark);padding:20px 0;z-index:101;overflow-y:auto}
+.sidebar-brand{padding:0 20px 20px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:20px;color:var(--white);font-size:1.125rem;font-weight:700}
+.nav-item{display:flex;align-items:center;gap:10px;padding:12px 20px;color:#9CA3AF;cursor:pointer;border:none;background:none;width:100%;text-align:left;font-size:0.875rem;font-family:var(--font)}
+.nav-item:hover{background:rgba(255,255,255,0.05);color:var(--white)}
+.nav-item.active{background:var(--c1);color:var(--white)}
+.header{position:fixed;top:0;left:220px;right:0;height:56px;background:linear-gradient(135deg,var(--c1),var(--c2));color:var(--white);display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:100}
+.header h1{font-size:1rem}
+.header-btn{padding:8px 16px;border-radius:8px;border:none;background:rgba(255,255,255,0.2);color:var(--white);font-size:0.875rem;cursor:pointer;font-family:var(--font)}
+.main{margin-left:220px;margin-top:56px;padding:24px;min-height:calc(100vh - 56px)}
+.section{display:none}
+.section.active{display:block}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.kpi{background:var(--white);border-radius:16px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
+.kpi .val{font-size:2rem;font-weight:700;color:var(--c1)}
+.kpi .lbl{font-size:0.75rem;color:var(--gray);margin-top:4px}
+.kpi.ok .val{color:var(--ok)}
+.kpi.warn .val{color:var(--warn)}
+.kpi.err .val{color:var(--err)}
+.card{background:var(--white);border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,0.05);margin-bottom:20px;overflow:hidden}
+.card-head{padding:16px 20px;border-bottom:1px solid #E5E7EB;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.card-body{padding:20px;overflow-x:auto}
+.table{width:100%;border-collapse:collapse;min-width:600px}
+.table th,.table td{padding:10px;text-align:left;border-bottom:1px solid #E5E7EB}
+.table th{background:var(--light);font-weight:600;font-size:0.7rem;text-transform:uppercase;color:var(--gray)}
+.table tr:hover{background:#FAFAFA}
+.table td{font-size:0.8125rem}
+.badge{padding:4px 10px;border-radius:20px;font-size:0.6875rem;font-weight:600}
+.badge-ok{background:#D1FAE5;color:#065F46}
+.badge-warn{background:#FEF3C7;color:#92400E}
+.badge-err{background:#FEE2E2;color:#991B1B}
+.badge-blue{background:#DBEAFE;color:#1E40AF}
+.tree-item{margin-bottom:8px}
+.tree-toggle{cursor:pointer;padding:12px 16px;border-radius:10px;background:var(--light);display:flex;align-items:center;gap:12px}
+.tree-toggle:hover{background:#E5E7EB}
+.tree-children{display:none;margin-left:24px;margin-top:8px}
+.tree-children.open{display:block}
+.tree-child{padding:10px 16px;border-left:2px solid #E5E7EB;margin-bottom:4px;font-size:0.8125rem}
+.filters{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+.filters select,.filters input{padding:10px 14px;border:2px solid #E5E7EB;border-radius:8px;font-size:0.8125rem;font-family:var(--font)}
+.section-map{position:relative;height:calc(100vh - 56px - 48px);margin:-24px;margin-top:0}
+.section-map #mapAdmin{width:100%;height:100%}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1500;display:flex;justify-content:center;align-items:center;opacity:0;visibility:hidden;transition:0.3s}
+.modal.show{opacity:1;visibility:visible}
+.modal-box{background:var(--white);width:100%;max-width:600px;max-height:90vh;border-radius:16px;overflow:hidden}
+.modal-head{padding:20px;border-bottom:1px solid #E5E7EB;display:flex;justify-content:space-between;align-items:center}
+.modal-head h2{font-size:1.125rem}
+.modal-close{width:36px;height:36px;border:none;background:var(--light);border-radius:50%;font-size:1.125rem;cursor:pointer}
+.modal-body{padding:20px;overflow-y:auto;max-height:calc(90vh - 140px)}
+.modal-foot{padding:16px 20px;border-top:1px solid #E5E7EB;display:flex;gap:12px;justify-content:flex-end}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--dark);color:var(--white);padding:14px 24px;border-radius:12px;z-index:2000;opacity:0;transform:translateY(20px);transition:0.3s}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.ok{background:var(--ok)}
+.toast.err{background:var(--err)}
+@media(max-width:1024px){.sidebar{width:180px}.header,.main{margin-left:180px}}
+@media(max-width:768px){.sidebar{display:none}.header,.main{margin-left:0}}
+</style>
+</head>
+<body>
+<div class="login" id="loginScreen">
+<div class="login-box">
+<h1>⚙️ FieldForce</h1>
+<p class="subtitle">Pannello Amministrazione</p>
+<div id="loginLoad" style="text-align:center;color:var(--gray)">⏳ Caricamento...</div>
+<form id="loginForm" style="display:none" onsubmit="return doLogin(event)">
+<div class="error" id="loginErr"></div>
+<div class="field"><label>Username</label><input type="text" id="inpUser" required></div>
+<div class="field"><label>Password</label><input type="password" id="inpPwd" required></div>
+<button type="submit" class="btn btn-primary btn-block" id="btnLogin">Accedi</button>
+</form>
+</div>
+</div>
+<aside class="sidebar" id="sidebar">
+<div class="sidebar-brand">⚙️ FieldForce</div>
+<button class="nav-item active" onclick="showSec('secDash',this)">📊 Dashboard</button>
+<button class="nav-item" onclick="showSec('secPiano',this)">📋 Piano</button>
+<button class="nav-item" onclick="showSec('secClienti',this)">🏢 Clienti</button>
+<button class="nav-item" onclick="showSec('secMacchine',this)">⚙️ Macchine</button>
+<button class="nav-item" onclick="showSec('secUrgenze',this)">🚨 Urgenze</button>
+<button class="nav-item" onclick="showSec('secRichieste',this)">📝 Richieste</button>
+<button class="nav-item" onclick="showSec('secTecnici',this)">👥 Tecnici</button>
+<button class="nav-item" onclick="showSec('secMappa',this)">🗺️ Mappa</button>
+<button class="nav-item" onclick="showSec('secConfig',this)">🔧 Config</button>
+<button class="nav-item" onclick="logout()" style="margin-top:40px;color:#EF4444">🚪 Esci</button>
+</aside>
+<header class="header" id="appHeader" style="display:none">
+<h1 id="headerTitle">📊 Dashboard</h1>
+<div style="display:flex;gap:12px;align-items:center">
+<button class="header-btn" onclick="syncData()">🔄 Aggiorna</button>
+<span id="headerUser">Admin</span>
+</div>
+</header>
+<main class="main" id="appMain" style="display:none">
+<section class="section active" id="secDash">
+<div class="kpi-grid">
+<div class="kpi"><div class="val" id="kpiOggi">0</div><div class="lbl">Interventi Oggi</div></div>
+<div class="kpi ok"><div class="val" id="kpiDone">0</div><div class="lbl">Completati</div></div>
+<div class="kpi err"><div class="val" id="kpiUrg">0</div><div class="lbl">Urgenze</div></div>
+<div class="kpi warn"><div class="val" id="kpiRich">0</div><div class="lbl">Richieste</div></div>
+</div>
+<div class="card">
+<div class="card-head">📋 Interventi Oggi <button class="btn btn-primary btn-sm" onclick="openNewInt()">+ Nuovo</button></div>
+<div class="card-body"><table class="table"><thead><tr><th>Ora</th><th>Tecnico</th><th>Cliente</th><th>Tipo</th><th>Stato</th></tr></thead><tbody id="tblOggi"></tbody></table></div>
+</div>
+</section>
+<section class="section" id="secPiano">
+<div class="filters">
+<input type="date" id="fltData" onchange="renderPiano()">
+<select id="fltTec" onchange="renderPiano()"><option value="">Tutti</option></select>
+<button class="btn btn-primary btn-sm" onclick="openNewInt()">+ Nuovo</button>
+</div>
+<div class="card"><div class="card-body"><table class="table"><thead><tr><th>Data</th><th>Ora</th><th>Tecnico</th><th>Cliente</th><th>Macchina</th><th>Tipo</th><th>Stato</th><th></th></tr></thead><tbody id="tblPiano"></tbody></table></div></div>
+</section>
+<section class="section" id="secClienti">
+<div class="filters">
+<input type="text" id="fltCliSearch" placeholder="🔍 Cerca..." onkeyup="renderClienti()">
+<button class="btn btn-primary btn-sm" onclick="openNewCli()">+ Nuovo Cliente</button>
+</div>
+<div class="card"><div class="card-body" id="treeClienti"></div></div>
+</section>
+<section class="section" id="secMacchine">
+<div class="filters">
+<select id="fltMacCli" onchange="renderMacchine()"><option value="">Tutti</option></select>
+<button class="btn btn-primary btn-sm" onclick="openNewMac()">+ Nuova</button>
+</div>
+<div class="card"><div class="card-body"><table class="table"><thead><tr><th>Cliente</th><th>Tipo</th><th>Modello</th><th>Seriale</th><th>Ore</th><th></th></tr></thead><tbody id="tblMacchine"></tbody></table></div></div>
+</section>
+<section class="section" id="secUrgenze">
+<div class="card">
+<div class="card-head">🚨 Urgenze Aperte</div>
+<div class="card-body"><table class="table"><thead><tr><th>Data</th><th>Cliente</th><th>Problema</th><th>Priorità</th><th>Assegnato</th><th></th></tr></thead><tbody id="tblUrgenze"></tbody></table></div>
+</div>
+</section>
+<section class="section" id="secRichieste">
+<div class="card">
+<div class="card-head">📝 Richieste</div>
+<div class="card-body"><table class="table"><thead><tr><th>Data</th><th>Tecnico</th><th>Tipo</th><th>Periodo</th><th>Motivo</th><th></th></tr></thead><tbody id="tblRichieste"></tbody></table></div>
+</div>
+</section>
+<section class="section" id="secTecnici">
+<div class="card">
+<div class="card-head">👥 Tecnici <button class="btn btn-primary btn-sm" onclick="openNewTec()">+ Nuovo</button></div>
+<div class="card-body"><table class="table"><thead><tr><th>Nome</th><th>Username</th><th>Ruolo</th><th>Squadra</th><th>Attivo</th><th></th></tr></thead><tbody id="tblTecnici"></tbody></table></div>
+</div>
+</section>
+<section class="section section-map" id="secMappa"><div id="mapAdmin"></div></section>
+<section class="section" id="secConfig">
+<div class="card">
+<div class="card-head">🎨 Brand</div>
+<div class="card-body">
+<div class="field"><label>Nome Azienda</label><input type="text" id="cfgNome" onchange="saveConfig('azienda_nome',this.value)"></div>
+<div class="field"><label>Colore</label><input type="color" id="cfgColore" onchange="saveConfig('colore_primario',this.value)"></div>
+<div class="field"><label>Font</label><input type="text" id="cfgFont" onchange="saveConfig('font_famiglia',this.value)"></div>
+</div>
+</div>
+<div class="card">
+<div class="card-head">📞 Assistenza</div>
+<div class="card-body">
+<div class="field"><label>Telefono</label><input type="text" id="cfgTel" onchange="saveConfig('telefono_assistenza',this.value)"></div>
+<div class="field"><label>Email</label><input type="email" id="cfgEmail" onchange="saveConfig('email_assistenza',this.value)"></div>
+</div>
+</div>
+</section>
+</main>
+<div class="modal" id="modInt">
+<div class="modal-box">
+<div class="modal-head"><h2 id="modIntTitle">Nuovo Intervento</h2><button class="modal-close" onclick="closeMod('modInt')">✕</button></div>
+<div class="modal-body">
+<div class="field"><label>Data</label><input type="date" id="intData"></div>
+<div class="field"><label>Ora</label><input type="time" id="intOra" value="08:00"></div>
+<div class="field"><label>Durata (h)</label><input type="number" id="intDurata" step="0.5" value="2"></div>
+<div class="field"><label>Tecnico</label><select id="intTec"></select></div>
+<div class="field"><label>Cliente</label><select id="intCli" onchange="updIntMac()"></select></div>
+<div class="field"><label>Macchina</label><select id="intMac"></select></div>
+<div class="field"><label>Tipo</label><select id="intTipo"></select></div>
+<div class="field"><label>Note</label><textarea id="intNote" rows="2"></textarea></div>
+</div>
+<div class="modal-foot">
+<button class="btn btn-outline" onclick="closeMod('modInt')">Annulla</button>
+<button class="btn btn-primary" onclick="saveInt()">💾 Salva</button>
+</div>
+</div>
+</div>
+<div class="modal" id="modCli">
+<div class="modal-box">
+<div class="modal-head"><h2>Nuovo Cliente</h2><button class="modal-close" onclick="closeMod('modCli')">✕</button></div>
+<div class="modal-body">
+<div class="field"><label>Nome</label><input type="text" id="cliNome"></div>
+<div class="field"><label>Città</label><input type="text" id="cliCitta"></div>
+<div class="field"><label>Indirizzo</label><input type="text" id="cliIndirizzo"></div>
+<div class="field"><label>Telefono</label><input type="text" id="cliTel"></div>
+<div class="field"><label>Lat</label><input type="number" step="0.0001" id="cliLat"></div>
+<div class="field"><label>Lng</label><input type="number" step="0.0001" id="cliLng"></div>
+</div>
+<div class="modal-foot">
+<button class="btn btn-outline" onclick="closeMod('modCli')">Annulla</button>
+<button class="btn btn-primary" onclick="saveCli()">💾 Salva</button>
+</div>
+</div>
+</div>
+<div class="modal" id="modMac">
+<div class="modal-box">
+<div class="modal-head"><h2>Nuova Macchina</h2><button class="modal-close" onclick="closeMod('modMac')">✕</button></div>
+<div class="modal-body">
+<div class="field"><label>Cliente</label><select id="macCli"></select></div>
+<div class="field"><label>Tipo</label><input type="text" id="macTipo"></div>
+<div class="field"><label>Modello</label><input type="text" id="macModello"></div>
+<div class="field"><label>Seriale</label><input type="text" id="macSeriale"></div>
+<div class="field"><label>Ore</label><input type="number" id="macOre" value="0"></div>
+</div>
+<div class="modal-foot">
+<button class="btn btn-outline" onclick="closeMod('modMac')">Annulla</button>
+<button class="btn btn-primary" onclick="saveMac()">💾 Salva</button>
+</div>
+</div>
+</div>
+<div class="modal" id="modTec">
+<div class="modal-box">
+<div class="modal-head"><h2>Nuovo Tecnico</h2><button class="modal-close" onclick="closeMod('modTec')">✕</button></div>
+<div class="modal-body">
+<div class="field"><label>Username</label><input type="text" id="tecUser"></div>
+<div class="field"><label>Password</label><input type="text" id="tecPwd" value="Password123"></div>
+<div class="field"><label>Nome</label><input type="text" id="tecNome"></div>
+<div class="field"><label>Cognome</label><input type="text" id="tecCognome"></div>
+<div class="field"><label>Ruolo</label><select id="tecRuolo"><option value="tecnico">Tecnico</option><option value="caposquadra">Capo Squadra</option></select></div>
+<div class="field"><label>Squadra</label><select id="tecSquadra"></select></div>
+</div>
+<div class="modal-foot">
+<button class="btn btn-outline" onclick="closeMod('modTec')">Annulla</button>
+<button class="btn btn-primary" onclick="saveTec()">💾 Salva</button>
+</div>
+</div>
+</div>
+<div class="modal" id="modAssign">
+<div class="modal-box">
+<div class="modal-head"><h2>Assegna Urgenza</h2><button class="modal-close" onclick="closeMod('modAssign')">✕</button></div>
+<div class="modal-body">
+<div class="field"><label>Tecnico</label><select id="assignTec"></select></div>
+<div class="field"><label>Data</label><input type="date" id="assignData"></div>
+</div>
+<div class="modal-foot">
+<button class="btn btn-outline" onclick="closeMod('modAssign')">Annulla</button>
+<button class="btn btn-primary" onclick="doAssign()">✅ Assegna</button>
+</div>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const API_URL='https://script.google.com/macros/s/AKfycbwJ3SGmWiZFPRPCrbQYPu4Ufugm3jk9VLZsL5XBblVWfgy4OyM7a6jC5TwU1ufKUF_r3Q/exec';
+const API_TOKEN='MRS_FieldForce_2026_MBGOAT';
+let DATA={config:{},utenti:[],clienti:[],macchine:[],piano:[],urgenze:[],richieste:[],tipiIntervento:[],priorita:[],squadre:[]};
+let USER=null,mapAdmin=null,editIntId=null,assignUrgId=null;
+const $=id=>document.getElementById(id);
+const today=()=>new Date().toISOString().split('T')[0];
+const fmtDate=d=>d?new Date(d).toLocaleDateString('it-IT'):'-';
+const isTrue=v=>v===true||v==='TRUE'||v==='true'||v===1;
+async function api(action,data={},method='GET'){
+let url=API_URL,opts={};
+if(method==='GET'){url+='?'+new URLSearchParams({action,token:API_TOKEN,userId:USER?.ID||'',...data})}
+else{opts={method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action,token:API_TOKEN,userId:USER?.ID||'',...data})}}
+const r=await(await fetch(url,opts)).json();
+if(!r.success)throw new Error(r.error||'Errore');
+return r.data;
+}
+document.addEventListener('DOMContentLoaded',init);
+async function init(){
+try{DATA=await api('getAll');applyConfig();$('loginLoad').style.display='none';$('loginForm').style.display='block';
+const saved=localStorage.getItem('ff_admin_session');
+if(saved){const s=JSON.parse(saved);const u=DATA.utenti.find(x=>x.ID===s.user?.ID);if(u&&(u.Ruolo==='director'||u.Ruolo==='caposquadra')){USER={...s.user,...u};enterApp()}}}
+catch(e){$('loginLoad').innerHTML='❌ '+e.message}}
+function applyConfig(){const c=DATA.config;if(c.font_famiglia)document.documentElement.style.setProperty('--font',c.font_famiglia);if(c.colore_primario)document.documentElement.style.setProperty('--c1',c.colore_primario)}
+async function doLogin(e){e.preventDefault();const user=$('inpUser').value.trim(),pwd=$('inpPwd').value;$('btnLogin').disabled=true;
+try{const r=await api('login',{username:user,password:pwd},'POST');if(r.success===false||!r.user)throw new Error(r.error||'Credenziali errate');if(r.user.Ruolo!=='director'&&r.user.Ruolo!=='caposquadra')throw new Error('Accesso non autorizzato');USER=r.user;localStorage.setItem('ff_admin_session',JSON.stringify({user:USER}));enterApp()}
+catch(e){$('loginErr').textContent=e.message;$('loginErr').classList.add('show')}finally{$('btnLogin').disabled=false}return false}
+function logout(){localStorage.removeItem('ff_admin_session');location.reload()}
+function enterApp(){$('loginScreen').classList.add('hidden');$('appHeader').style.display='flex';$('appMain').style.display='block';$('headerUser').textContent=USER.Nome+' '+USER.Cognome;renderAll()}
+async function syncData(){toast('🔄 Sync...');try{DATA=await api('getAll');renderAll();toast('✅ Aggiornato!','ok')}catch(e){toast('❌ '+e.message,'err')}}
+function renderAll(){renderDash();renderPiano();renderClienti();renderMacchine();renderUrgenze();renderRichieste();renderTecnici();renderConfig();populateSelects()}
+function getCli(id){return DATA.clienti.find(c=>c.ID===id)||{}}
+function getMac(id){return DATA.macchine.find(m=>m.ID===id)||{}}
+function getTec(id){return DATA.utenti.find(u=>u.ID===id)||{}}
+function getTipo(id){return DATA.tipiIntervento.find(t=>t.ID===id)||{}}
+function getPri(id){return DATA.priorita.find(p=>p.ID===id)||{}}
+function renderDash(){const t=today();const int=DATA.piano.filter(p=>!isTrue(p.Obsoleto)&&String(p.Data).split('T')[0]===t);$('kpiOggi').textContent=int.length;$('kpiDone').textContent=int.filter(p=>p.Stato==='completato').length;$('kpiUrg').textContent=DATA.urgenze.filter(u=>!isTrue(u.Obsoleto)&&u.Stato!=='risolta').length;$('kpiRich').textContent=DATA.richieste.filter(r=>!isTrue(r.Obsoleto)&&r.Stato==='pending').length;
+$('tblOggi').innerHTML=int.sort((a,b)=>(a.OraInizio||'').localeCompare(b.OraInizio||'')).map(p=>{const tec=getTec(p.TecnicoID),cli=getCli(p.ClienteID),tipo=getTipo(p.TipoInterventoID);let bc='badge-blue';if(p.Stato==='completato')bc='badge-ok';else if(p.Stato==='in_corso')bc='badge-warn';return`<tr onclick="openEditInt('${p.ID}')" style="cursor:pointer"><td>${p.OraInizio||'-'}</td><td>${tec.Nome||'-'}</td><td>${cli.Nome||'-'}</td><td>${tipo.Nome||'-'}</td><td><span class="badge ${bc}">${p.Stato}</span></td></tr>`}).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--gray);padding:40px">Nessun intervento oggi</td></tr>'}
+function renderPiano(){const fltD=$('fltData').value,fltT=$('fltTec').value;let int=DATA.piano.filter(p=>!isTrue(p.Obsoleto));if(fltD)int=int.filter(p=>String(p.Data).split('T')[0]===fltD);if(fltT)int=int.filter(p=>p.TecnicoID===fltT);int.sort((a,b)=>new Date(b.Data)-new Date(a.Data));
+$('tblPiano').innerHTML=int.slice(0,50).map(p=>{const tec=getTec(p.TecnicoID),cli=getCli(p.ClienteID),mac=getMac(p.MacchinaID),tipo=getTipo(p.TipoInterventoID);let bc='badge-blue';if(p.Stato==='completato')bc='badge-ok';else if(p.Stato==='in_corso')bc='badge-warn';return`<tr><td>${fmtDate(p.Data)}</td><td>${p.OraInizio||'-'}</td><td>${tec.Nome||'-'}</td><td>${cli.Nome||'-'}</td><td>${mac.Tipo||'-'}</td><td>${tipo.Nome||'-'}</td><td><span class="badge ${bc}">${p.Stato}</span></td><td><button class="btn btn-outline btn-sm" onclick="openEditInt('${p.ID}')">✏️</button></td></tr>`}).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--gray);padding:40px">Nessun intervento</td></tr>'}
+function renderClienti(){const search=($('fltCliSearch').value||'').toLowerCase();let clienti=DATA.clienti.filter(c=>!isTrue(c.Obsoleto));if(search)clienti=clienti.filter(c=>(c.Nome||'').toLowerCase().includes(search));
+$('treeClienti').innerHTML=clienti.map(c=>{const macchine=DATA.macchine.filter(m=>m.ClienteID===c.ID&&!isTrue(m.Obsoleto));return`<div class="tree-item"><div class="tree-toggle" onclick="this.nextElementSibling.classList.toggle('open')"><strong>🏢 ${c.Nome}</strong> <small style="color:var(--gray)">${c.Citta||''} • ${macchine.length} macchine</small></div><div class="tree-children">${macchine.map(m=>`<div class="tree-child">⚙️ ${m.Tipo} - ${m.Seriale} <small style="color:var(--gray)">${m.OreLavoro||0}h</small></div>`).join('')||'<div class="tree-child" style="color:var(--gray)">Nessuna macchina</div>'}</div></div>`}).join('')||'<div style="color:var(--gray);text-align:center;padding:40px">Nessun cliente</div>'}
+function renderMacchine(){const fltC=$('fltMacCli').value;let mac=DATA.macchine.filter(m=>!isTrue(m.Obsoleto));if(fltC)mac=mac.filter(m=>m.ClienteID===fltC);$('tblMacchine').innerHTML=mac.map(m=>{const cli=getCli(m.ClienteID);return`<tr><td>${cli.Nome||'-'}</td><td>${m.Tipo||'-'}</td><td>${m.Modello||'-'}</td><td>${m.Seriale||'-'}</td><td>${m.OreLavoro||0}</td><td><button class="btn btn-outline btn-sm" onclick="editMac('${m.ID}')">✏️</button></td></tr>`}).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:40px">Nessuna macchina</td></tr>'}
+function renderUrgenze(){const urg=DATA.urgenze.filter(u=>!isTrue(u.Obsoleto)&&u.Stato!=='risolta');$('tblUrgenze').innerHTML=urg.map(u=>{const cli=getCli(u.ClienteID),pri=getPri(u.PrioritaID),tec=getTec(u.TecnicoAssegnato);return`<tr><td>${fmtDate(u.DataSegnalazione)}</td><td>${cli.Nome||'-'}</td><td>${u.Problema||'-'}</td><td><span class="badge badge-err">${pri.Nome||'-'}</span></td><td>${tec.Nome||'-'}</td><td><button class="btn btn-primary btn-sm" onclick="openAssign('${u.ID}')">Assegna</button></td></tr>`}).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:40px">Nessuna urgenza</td></tr>'}
+function renderRichieste(){const rich=DATA.richieste.filter(r=>!isTrue(r.Obsoleto)&&r.Stato==='pending');$('tblRichieste').innerHTML=rich.map(r=>{const tec=getTec(r.TecnicoID);return`<tr><td>${fmtDate(r.DataRichiesta)}</td><td>${tec.Nome||'-'}</td><td>${r.Tipo||'-'}</td><td>${fmtDate(r.DataInizio)} - ${fmtDate(r.DataFine)}</td><td>${r.Motivo||'-'}</td><td><button class="btn btn-ok btn-sm" onclick="processRich('${r.ID}','approvato')">✓</button> <button class="btn btn-err btn-sm" onclick="processRich('${r.ID}','rifiutato')">✗</button></td></tr>`}).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--gray);padding:40px">Nessuna richiesta</td></tr>'}
+function renderTecnici(){const tec=DATA.utenti.filter(u=>u.Ruolo==='tecnico'||u.Ruolo==='caposquadra');$('tblTecnici').innerHTML=tec.map(t=>`<tr><td>${t.Nome} ${t.Cognome}</td><td>${t.Username}</td><td>${t.Ruolo}</td><td>${t.Squadra||'-'}</td><td>${isTrue(t.Attivo)?'<span class="badge badge-ok">Sì</span>':'<span class="badge badge-err">No</span>'}</td><td><button class="btn btn-outline btn-sm" onclick="editTec('${t.ID}')">✏️</button></td></tr>`).join('')}
+function renderConfig(){const c=DATA.config;$('cfgNome').value=c.azienda_nome||'';$('cfgColore').value=c.colore_primario||'#B22222';$('cfgFont').value=c.font_famiglia||'';$('cfgTel').value=c.telefono_assistenza||'';$('cfgEmail').value=c.email_assistenza||''}
+async function saveConfig(key,val){try{await api('updateConfig',{parametro:key,valore:val},'POST');DATA.config[key]=val;applyConfig();toast('✅ Salvato','ok')}catch(e){toast('❌ '+e.message,'err')}}
+function populateSelects(){const tecOpts='<option value="">--</option>'+DATA.utenti.filter(u=>u.Ruolo==='tecnico'&&isTrue(u.Attivo)).map(t=>`<option value="${t.ID}">${t.Nome} ${t.Cognome}</option>`).join('');const cliOpts='<option value="">--</option>'+DATA.clienti.filter(c=>!isTrue(c.Obsoleto)).map(c=>`<option value="${c.ID}">${c.Nome}</option>`).join('');const tipoOpts=DATA.tipiIntervento.filter(t=>isTrue(t.Attivo)).map(t=>`<option value="${t.ID}">${t.Nome}</option>`).join('');const squadreOpts='<option value="">--</option>'+DATA.squadre.filter(s=>isTrue(s.Attivo)).map(s=>`<option value="${s.Nome}">${s.Nome}</option>`).join('');$('fltTec').innerHTML='<option value="">Tutti</option>'+DATA.utenti.filter(u=>u.Ruolo==='tecnico').map(t=>`<option value="${t.ID}">${t.Nome}</option>`).join('');$('intTec').innerHTML=tecOpts;$('intCli').innerHTML=cliOpts;$('intTipo').innerHTML=tipoOpts;$('fltMacCli').innerHTML='<option value="">Tutti</option>'+DATA.clienti.filter(c=>!isTrue(c.Obsoleto)).map(c=>`<option value="${c.ID}">${c.Nome}</option>`).join('');$('macCli').innerHTML=cliOpts;$('assignTec').innerHTML=tecOpts;$('tecSquadra').innerHTML=squadreOpts}
+function updIntMac(){const cid=$('intCli').value;$('intMac').innerHTML='<option value="">--</option>'+DATA.macchine.filter(m=>m.ClienteID===cid&&!isTrue(m.Obsoleto)).map(m=>`<option value="${m.ID}">${m.Tipo} - ${m.Seriale}</option>`).join('')}
+function openNewInt(){editIntId=null;$('modIntTitle').textContent='Nuovo Intervento';$('intData').value=today();$('intOra').value='08:00';$('intDurata').value='2';$('intTec').value='';$('intCli').value='';$('intMac').innerHTML='<option value="">--</option>';$('intTipo').value=DATA.tipiIntervento[0]?.ID||'';$('intNote').value='';openMod('modInt')}
+function openEditInt(id){const p=DATA.piano.find(x=>x.ID===id);if(!p)return;editIntId=id;$('modIntTitle').textContent='Modifica';$('intData').value=String(p.Data).split('T')[0];$('intOra').value=p.OraInizio||'';$('intDurata').value=p.DurataOre||2;$('intTec').value=p.TecnicoID||'';$('intCli').value=p.ClienteID||'';updIntMac();$('intMac').value=p.MacchinaID||'';$('intTipo').value=p.TipoInterventoID||'';$('intNote').value=p.Note||'';openMod('modInt')}
+async function saveInt(){const data={Data:$('intData').value,OraInizio:$('intOra').value,DurataOre:$('intDurata').value,TecnicoID:$('intTec').value,ClienteID:$('intCli').value,MacchinaID:$('intMac').value,TipoInterventoID:$('intTipo').value,Note:$('intNote').value};if(!data.Data||!data.TecnicoID||!data.ClienteID){toast('Compila campi','warn');return}try{if(editIntId)await api('updatePiano',{id:editIntId,data},'POST');else await api('createPiano',{data},'POST');toast('✅ Salvato!','ok');closeMod('modInt');await syncData()}catch(e){toast('❌ '+e.message,'err')}}
+function openNewCli(){$('cliNome').value='';$('cliCitta').value='';$('cliIndirizzo').value='';$('cliTel').value='';$('cliLat').value='';$('cliLng').value='';openMod('modCli')}
+async function saveCli(){const data={Nome:$('cliNome').value,Citta:$('cliCitta').value,Indirizzo:$('cliIndirizzo').value,Telefono:$('cliTel').value,Lat:$('cliLat').value,Lng:$('cliLng').value};if(!data.Nome){toast('Nome obbligatorio','warn');return}try{await api('createCliente',{data},'POST');toast('✅ Creato!','ok');closeMod('modCli');await syncData()}catch(e){toast('❌ '+e.message,'err')}}
+function openNewMac(){$('macCli').value='';$('macTipo').value='';$('macModello').value='';$('macSeriale').value='';$('macOre').value='0';openMod('modMac')}
+async function saveMac(){const data={ClienteID:$('macCli').value,Tipo:$('macTipo').value,Modello:$('macModello').value,Seriale:$('macSeriale').value,OreLavoro:$('macOre').value};if(!data.ClienteID||!data.Tipo){toast('Compila campi','warn');return}try{await api('createMacchina',{data},'POST');toast('✅ Creato!','ok');closeMod('modMac');await syncData()}catch(e){toast('❌ '+e.message,'err')}}
+function openNewTec(){$('tecUser').value='';$('tecPwd').value='Password123';$('tecNome').value='';$('tecCognome').value='';$('tecRuolo').value='tecnico';$('tecSquadra').value='';openMod('modTec')}
+async function saveTec(){const data={Username:$('tecUser').value,Password:$('tecPwd').value,Nome:$('tecNome').value,Cognome:$('tecCognome').value,Ruolo:$('tecRuolo').value,Squadra:$('tecSquadra').value};if(!data.Username||!data.Nome){toast('Compila campi','warn');return}try{await api('createUtente',{data},'POST');toast('✅ Creato!','ok');closeMod('modTec');await syncData()}catch(e){toast('❌ '+e.message,'err')}}
+function openAssign(id){assignUrgId=id;$('assignData').value=today();openMod('modAssign')}
+async function doAssign(){const tecId=$('assignTec').value,data=$('assignData').value;if(!tecId){toast('Seleziona tecnico','warn');return}try{await api('assignUrgenza',{id:assignUrgId,tecnicoId:tecId,creaIntervento:true,dataIntervento:data},'POST');toast('✅ Assegnata','ok');closeMod('modAssign');await syncData()}catch(e){toast('❌ '+e.message,'err')}}
+async function processRich(id,stato){try{await api('processRichiesta',{id,stato,risposta:''},'POST');toast('✅ OK','ok');await syncData()}catch(e){toast('❌ '+e.message,'err')}}
+function initMapAdmin(){if(mapAdmin){mapAdmin.invalidateSize();return}const lat=parseFloat(DATA.config.mappa_lat)||44.6471,lng=parseFloat(DATA.config.mappa_lng)||10.9252;mapAdmin=L.map('mapAdmin').setView([lat,lng],10);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapAdmin);DATA.clienti.filter(c=>c.Lat&&c.Lng&&!isTrue(c.Obsoleto)).forEach(c=>{L.marker([c.Lat,c.Lng]).addTo(mapAdmin).bindPopup(`<b>${c.Nome}</b><br>${c.Citta||''}`)})}
+function showSec(id,btn){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));$(id).classList.add('active');btn.classList.add('active');$('headerTitle').textContent=btn.textContent;if(id==='secMappa')setTimeout(initMapAdmin,100)}
+function openMod(id){$(id).classList.add('show')}
+function closeMod(id){$(id).classList.remove('show')}
+document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeMod(m.id)}));
+function toast(msg,type=''){const t=$('toast');t.textContent=msg;t.className='toast show'+(type?' '+type:'');setTimeout(()=>t.classList.remove('show'),4000)}
+</script>
+</body>
+</html>
